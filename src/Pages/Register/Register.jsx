@@ -1,7 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
+import axios from 'axios'
 import './Register.css';
 
 const Register = () => {
+    const [errors, setErrors] = useState({});
     const studentNameRef = useRef(null);
     const counsellingCodeRef = useRef(null);
     const dateOfBirthRef = useRef(null);
@@ -14,8 +16,7 @@ const Register = () => {
     const confirmPasswordRef = useRef(null);
     const photoRef = useRef(null);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const validateForm = () => {
         let validationErrors = {};
 
         const studentName = studentNameRef.current.value;
@@ -28,7 +29,14 @@ const Register = () => {
         const email = emailRef.current.value;
         const password = passwordRef.current.value;
         const confirmPassword = confirmPasswordRef.current.value;
-        const photo = photoRef.current.files[0];
+
+        // Validate required fields
+        if (!studentName) validationErrors.studentName = "Student name is required";
+        if (!counsellingCode) validationErrors.counsellingCode = "Counselling code is required";
+        if (!dateOfBirth) validationErrors.dateOfBirth = "Date of birth is required";
+        if (!email) validationErrors.email = "Email is required";
+        if (!password) validationErrors.password = "Password is required";
+        if (!confirmPassword) validationErrors.confirmPassword = "Confirm your password";
 
         // Validate phone number length
         if (phoneNumber && phoneNumber.length !== 10) {
@@ -37,19 +45,19 @@ const Register = () => {
 
         // Validate names to allow only alphabets and spaces
         const namePattern = /^[A-Za-z\s]+$/;
-        if (!namePattern.test(studentName)) {
+        if (studentName && !namePattern.test(studentName)) {
             validationErrors.studentName = "Student name must contain only alphabets";
         }
 
         // Validate email
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailPattern.test(email)) {
+        if (email && !emailPattern.test(email)) {
             validationErrors.email = "Invalid email format";
         }
 
         // Validate password strength
         const passwordPattern = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_])[a-zA-Z\d\W_]{8,}$/;
-        if (!passwordPattern.test(password)) {
+        if (password && !passwordPattern.test(password)) {
             validationErrors.password = "Password must be at least 8 characters long and contain both letters and numbers";
         }
 
@@ -58,34 +66,46 @@ const Register = () => {
             validationErrors.confirmPassword = "Passwords do not match";
         }
 
+        return validationErrors;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const validationErrors = validateForm();
+
         if (Object.keys(validationErrors).length > 0) {
-            // Display errors (implement this as needed)
-            alert(JSON.stringify(validationErrors, null, 2));
+            setErrors(validationErrors);
         } else {
-            // Submit form data
+            // Clear errors
+            setErrors({});
+
             const formData = new FormData();
-            formData.append('studentName', studentName);
-            formData.append('counsellingCode', counsellingCode);
-            formData.append('dateOfBirth', dateOfBirth);
-            formData.append('community', community);
-            formData.append('courseName', courseName);
-            formData.append('batchYear', batchYear);
-            formData.append('phoneNumber', phoneNumber);
-            formData.append('email', email);
-            formData.append('password', password);
-            formData.append('photo', photo);
+            formData.append('counseling_code', counsellingCodeRef.current.value);
+            formData.append('student_name', studentNameRef.current.value);
+            formData.append('date_of_birth', dateOfBirthRef.current.value);
+            formData.append('community', communityRef.current.value);
+            formData.append('course_name', courseNameRef.current.value);
+            formData.append('batch_year', batchYearRef.current.value);
+            formData.append('phone_number', phoneNumberRef.current.value);
+            formData.append('email_id', emailRef.current.value);
+            formData.append('password', passwordRef.current.value);
+            // Uncomment if photo upload is needed
+            // formData.append('photo', photoRef.current.files[0]);
+            for (const [key, value] of formData.entries()) {
+                console.log(`${key}: ${value}`);
+            }
 
             try {
-                const response = await fetch('/register', {
-                    method: 'POST',
-                    body: formData
+                const response = await axios.post('http://localhost:4001/api/register', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
                 });
-
-                const result = await response.json();
-                if (response.ok) {
-                    alert(result.message || "Registration successful!");
+            
+                if (response.status === 200) {
+                    alert(response.data.message || "Registration successful!");
                 } else {
-                    alert(result.error || "Registration failed!");
+                    alert(response.data.error || "Registration failed!");
                 }
             } catch (error) {
                 alert("Error submitting form");
@@ -97,7 +117,8 @@ const Register = () => {
         <div className="form-container">
             <h1>Registration Form</h1>
             <form onSubmit={handleSubmit} className='register-form'>
-                <div className="input-group">
+                {/* Form fields with validation errors displayed */}
+                <div className="input-group-register">
                     <div className="input-group-div">
                         <h4><label className='register-label'>First Name:</label></h4>
                         <input
@@ -106,6 +127,7 @@ const Register = () => {
                             ref={studentNameRef}
                             placeholder="Enter your first name"
                         />
+                        {errors.studentName && <p className="error">{errors.studentName}</p>}
                     </div>
                 </div>
 
@@ -117,9 +139,10 @@ const Register = () => {
                         ref={emailRef}
                         placeholder="Enter your email"
                     />
+                    {errors.email && <p className="error">{errors.email}</p>}
                 </div>
 
-                <div className="input-group">
+                <div className="input-group-register">
                     <div className="input-group-div">
                         <h4><label className='register-label'>Password:</label></h4>
                         <input
@@ -128,6 +151,7 @@ const Register = () => {
                             ref={passwordRef}
                             placeholder="Enter your password"
                         />
+                        {errors.password && <p className="error">{errors.password}</p>}
                     </div>
 
                     <div>
@@ -138,10 +162,11 @@ const Register = () => {
                             ref={confirmPasswordRef}
                             placeholder="Confirm your password"
                         />
+                        {errors.confirmPassword && <p className="error">{errors.confirmPassword}</p>}
                     </div>
                 </div>
 
-                <div className="input-group">
+                <div className="input-group-register">
                     <div className="input-group-div">
                         <h4><label className='register-label'>Counselling Code:</label></h4>
                         <input
@@ -150,19 +175,19 @@ const Register = () => {
                             ref={counsellingCodeRef}
                             placeholder="Enter counselling code"
                         />
-
-                        <div>
-                            <h4><label className='register-label'>Date of Birth:</label></h4>
-                            <input
-                                className="register-input"
-                                type="date"
-                                ref={dateOfBirthRef}
-                            />
-                        </div>
                     </div>
                 </div>
 
-                <div className="input-group">
+                <div>
+                    <h4><label className='register-label'>Date of Birth:</label></h4>
+                    <input
+                        className="register-input"
+                        type="date"
+                        ref={dateOfBirthRef}
+                    />
+                </div>
+
+                <div className="input-group-register">
                     <div className="input-group-div">
                         <h4><label className='register-label'>Community:</label></h4>
                         <input
@@ -174,7 +199,7 @@ const Register = () => {
                     </div>
                 </div>
 
-                <div className="input-group">
+                <div className="input-group-register">
                     <div className="input-group-div">
                         <h4><label className='register-label'>Course Name:</label></h4>
                         <select
@@ -184,20 +209,22 @@ const Register = () => {
                             <option value="">Select Course</option>
                             <option value="B.S.M.S">B.S.M.S</option>
                         </select>
-
-                        <div>
-                            <h4><label className='register-label'>Batch Year:</label></h4>
-                            <input
-                                className="register-input"
-                                type="text"
-                                ref={batchYearRef}
-                                placeholder="Enter batch year"
-                            />
-                        </div>
                     </div>
                 </div>
 
-                <div className="input-group">
+                <div className="input-group-register">
+                    <div className="input-group-div">
+                        <h4><label className='register-label'>Batch Year:</label></h4>
+                        <input
+                            className="register-input"
+                            type="text"
+                            ref={batchYearRef}
+                            placeholder="Enter batch year"
+                        />
+                    </div>
+                </div>
+
+                <div className="input-group-register">
                     <div className="input-group-div">
                         <h4><label className='register-label'>Phone Number:</label></h4>
                         <input
@@ -206,19 +233,11 @@ const Register = () => {
                             ref={phoneNumberRef}
                             placeholder="Enter phone number"
                         />
+                        {errors.phoneNumber && <p className="error">{errors.phoneNumber}</p>}
                     </div>
                 </div>
 
-                <div>
-                    <h4><label className='register-label'>Upload Photo:</label></h4>
-                    <input
-                        className="register-input"
-                        type="file"
-                        ref={photoRef}
-                    />
-                </div>
-
-                <button className='register-btn' type="submit">Register</button>
+                <button className="register-button" type="submit">Register</button>
             </form>
         </div>
     );

@@ -28,12 +28,12 @@ const Login = () => {
           <input id="rememberMe" type="checkbox"/>
           <label for="rememberMe">Remember Me</label>
         </div>
-        <a class="forgot pull-right" href="#">Forgot Password?</a>
+        {/* <a class="forgot pull-right" href="#">Forgot Password?</a> */}
       </div>
     </form>
   </div>
   <div class="signup-wrapper text-center">
-    <a href="#">Don't have an accout? <span class="text-primary">Create One</span></a>
+    <a href="./Register">Don't have an accout? <span class="text-primary">Create One</span></a>
   </div>
 </div>
     </div>
